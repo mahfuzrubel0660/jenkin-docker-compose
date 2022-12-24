@@ -1,39 +1,44 @@
 
+
+
 pipeline {
+  environment {
+    registry = "mahfuzrubel0660/app1"
+    registryCredential = 'dockerhub'
+    dockerImage = ''
+  }
   agent any
   stages {
-    stage("verify tooling") {
+    stage('Cloning Git') {
       steps {
-        sh '''
-          docker version
-          docker info
-          docker compose version 
-          curl --version
-          jq --version
-        '''
+        git 'https://github.com/mahfuzrubel0660/app1'
       }
     }
-    stage('Prune Docker data') {
-      steps {
-        sh 'docker system prune -a --volumes -f'
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build registry + ":$BUILD_NUMBER"
+        }
       }
     }
-    stage('Start container') {
-      steps {
-        sh 'docker compose up -d --no-color --wait'
-        sh 'docker compose ps'
+    stage('Deploy Image') {
+      steps{
+        script {
+          docker.withRegistry( '', registryCredential ) {
+            dockerImage.push()
+          }
+        }
       }
     }
-    stage('Run tests against the container') {
-      steps {
-        sh 'curl http://localhost:3000/param?query=demo | jq'
+    stage('docker-deploy') {
+      steps{
+        sh "docker run -d -p 9999:80 mahfuzrubel0660/app1:$BUILD_NUMBER"  
       }
     }
-  }
-  post {
-    always {
-      sh 'docker compose down --remove-orphans -v'
-      sh 'docker compose ps'
+    stage('Remove Unused docker image') {
+      steps{
+        sh "docker rmi $registry:$BUILD_NUMBER"
+      }
     }
   }
 }
