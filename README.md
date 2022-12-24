@@ -1,1 +1,2 @@
-# Jenkin-with-docker-compose
+# jenkin-docker-compose
+jenkin-with-docker-compose
